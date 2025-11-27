@@ -21,13 +21,14 @@ initialize_app()
 # def on_request_example(req: https_fn.Request) -> https_fn.Response:
 #     return https_fn.Response("Hello world!")
 
-db = firestore.Client()
-
 @firestore_fn.on_document_created(document="campaigns/{campaignId}/quests/{questId}")
 def notify_new_quest(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -> None:
+    db = firestore.Client()
     campaign_id = event.params['campaignId']
     quest_id = event.params['questId']
-    # Add your notification logic here
+    
+    print(f"New quest created in campaign {campaign_id} with ID {quest_id}")    
+    
 
     quest_snapshot = event.data  # DocumentSnapshot
     quest_data = quest_snapshot.to_dict()
@@ -63,10 +64,21 @@ def notify_new_quest(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -
     print("Tokens:", fcm_tokens)
 
     if fcm_tokens:
+        title = f"{quest_data.get('title','Uma missão te espera!')}"
+        quest_type = quest_data.get('type', None)
+        if quest_type == 'dice':
+            body = "🎲 Rolagem"
+        elif quest_type == 'choice':
+            body = "✅ Opção"
+        elif quest_type == 'textOnly':
+            body = "📕 Texto"
+        else:
+            body = "❓ Surpresa"
+
         message = messaging.MulticastMessage(
             notification=messaging.Notification(
-                title="Nova missão!",
-                body=f"{quest_data.get('title', '')} foi adicionada!",
+                title=title,
+                body=body,
             ),
             tokens=fcm_tokens,
         )
@@ -80,5 +92,3 @@ def notify_new_quest(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -
                 if not resp.success
             ]
             print("Tokens that caused failure:", failed_tokens)
-
-    print(f"New quest created in campaign {campaign_id} with ID {quest_id}")
