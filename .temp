@@ -1,15 +1,11 @@
-rules_version = '2';
 
-service cloud.firestore {
-  match /databases/{database}/documents {
     match /users/{userId} {
       allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      allow get: if request.auth != null;
     }
 
     match /campaigns/{campaignId} {
-      allow write, read: if true;
 
+      allow write, read: if true;
       // Anyone authenticated can create or fetch a campaign
       allow create, get: if request.auth != null;
 
@@ -17,7 +13,11 @@ service cloud.firestore {
 
       // --- Specific subcollections first ---
       match /members/{userId} {
-        allow read, create, update: if request.auth != null && request.auth.uid == userId;
+        // User can add themselves as a member (userId must match auth.uid)
+        allow create, update: if request.auth != null && request.auth.uid == userId;
+
+        // Allow members to read
+        allow read: if isMember(campaignId);
       }
 
       match /quests/{questId} {
@@ -34,5 +34,3 @@ service cloud.firestore {
                exists(/databases/$(database)/documents/campaigns/$(campaignId)/members/$(request.auth.uid));
       }
     }
-  }
-}
