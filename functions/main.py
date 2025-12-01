@@ -22,18 +22,15 @@ initialize_app()
 
 @firestore_fn.on_document_created(document="campaigns/{campaignId}/quests/{questId}")
 def notify_new_quest(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -> None:
-    campaign_id = event.params['campaignId']
     quest_id = event.params['questId']
-    
-    print(f"New quest created in campaign {campaign_id} with ID {quest_id}")    
     
     quest_snapshot = event.data  # DocumentSnapshot
     quest_data = quest_snapshot.to_dict()
 
     fcm_tokens = quest_data.get('targetNotificationTokens', [])
-    print(f"NEW QUEST ({quest_id}) TOKENS: {fcm_tokens}")
 
     if fcm_tokens:
+        print(f"NOTIFYING_NEW_QUEST | ({quest_id}) TOKENS: {fcm_tokens}")
         title = f"{quest_data.get('title','Uma missão te espera!')}"
         quest_type = quest_data.get('type', None)
         if quest_type == 'dice':
@@ -68,4 +65,4 @@ def notify_new_quest(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -
                 for idx, resp in enumerate(response.responses)
                 if not resp.success
             ]
-            print("Tokens that caused failure:", failed_tokens)
+            print("NOTIFYING_NEW_QUEST_FAILURE | TOKENS:", failed_tokens)
